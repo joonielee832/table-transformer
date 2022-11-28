@@ -1,6 +1,13 @@
 """
 Copyright (C) 2021 Microsoft Corporation
 """
+from eval import eval_coco
+from table_datasets import PDFTablesDataset
+import table_datasets as TD
+import datasets.transforms as R
+import util.misc as utils
+from models import build_model
+from engine import evaluate, train_one_epoch
 import os
 import argparse
 import json
@@ -13,14 +20,6 @@ import torch
 from torch.utils.data import DataLoader
 
 sys.path.append("../detr")
-from engine import evaluate, train_one_epoch
-from models import build_model
-import util.misc as utils
-import datasets.transforms as R
-
-import table_datasets as TD
-from table_datasets import PDFTablesDataset
-from eval import eval_coco
 
 
 def get_args():
@@ -42,13 +41,14 @@ def get_args():
         help="toggle between structure recognition and table detection")
     parser.add_argument('--model_load_path', help="The path to trained model")
     parser.add_argument('--load_weights_only', action='store_true')
-    parser.add_argument('--model_save_dir', help="The output directory for saving model params and checkpoints")
+    parser.add_argument(
+        '--model_save_dir', help="The output directory for saving model params and checkpoints")
     parser.add_argument('--metrics_save_filepath',
                         help='Filepath to save grits outputs',
                         default='')
     parser.add_argument('--debug_save_dir',
                         help='Filepath to save visualizations',
-                        default='debug')                        
+                        default='debug')
     parser.add_argument('--table_words_dir',
                         help="Folder containg the bboxes of table words")
     parser.add_argument('--mode',
@@ -56,6 +56,7 @@ def get_args():
                         default='train',
                         help="Modes: training (train) and evaluation (eval)")
     parser.add_argument('--debug', action='store_true')
+    parser.add_argument('--filter', action='store_true')
     parser.add_argument('--device')
     parser.add_argument('--lr', type=float)
     parser.add_argument('--lr_drop', type=int)
@@ -92,7 +93,26 @@ def get_class_map(data_type):
             'no object': 6
         }
     else:
-        class_map = {'table': 0, 'table rotated': 1, 'no object': 2}
+        class_map = {
+            'Table': 0,
+            'Other (Table)': 1,
+            'Footnote': 2,
+            'AP Spine': 3,
+            'Right Femur': 4,
+            'Left Femur': 5,
+            'Dual Femur': 6,
+            'Other (Image)': 7
+        }
+        # class_map = {
+        #     'Table': 0,
+        #     'Other (Table)': 1,
+        #     'Footnote': 2,
+        #     'Not Table': 3
+        # }
+        # class_map = {
+        #     'Table': 0,
+        #     'Not Table': 1
+        # }
     return class_map
 
 
@@ -150,14 +170,14 @@ def get_data(args):
     elif args.mode == "eval":
 
         dataset_test = PDFTablesDataset(os.path.join(args.data_root_dir,
-                                                     "test"),
+                                                     "val"),
                                         get_transform(args.data_type, "val"),
                                         do_crop=False,
                                         max_size=args.test_max_size,
                                         make_coco=True,
                                         include_eval=True,
                                         image_extension=".jpg",
-                                        xml_fileset="test_filelist.txt",
+                                        xml_fileset="val_filelist.txt",
                                         class_map=class_map)
         sampler_test = torch.utils.data.SequentialSampler(dataset_test)
 
@@ -260,15 +280,17 @@ def train(args, model, criterion, postprocessors, device):
         else:
             print("*** ERROR: Optimizer state of saved checkpoint not found. "
                   "To resume training with new initialized values add the --load_weights_only flag.")
-            raise Exception("ERROR: Optimizer state of saved checkpoint not found. Must add --load_weights_only flag to resume training without.")          
-        
+            raise Exception(
+                "ERROR: Optimizer state of saved checkpoint not found. Must add --load_weights_only flag to resume training without.")
+
         if not args.load_weights_only and 'epoch' in checkpoint:
             args.start_epoch = checkpoint['epoch'] + 1
         elif args.load_weights_only:
             print("*** WARNING: Resuming training and ignoring previously saved epoch. "
                   "To resume from previously saved epoch, remove the --load_weights_only flag.")
         else:
-            print("*** WARNING: Epoch of saved model not found. Starting at epoch {}.".format(args.start_epoch))
+            print(
+                "*** WARNING: Epoch of saved model not found. Starting at epoch {}.".format(args.start_epoch))
 
     # Use user-specified save directory, if specified
     if args.model_save_dir:
@@ -332,7 +354,8 @@ def train(args, model, criterion, postprocessors, device):
 
         # Save checkpoint for evaluation
         if (epoch+1) % args.checkpoint_freq == 0:
-            model_save_path_epoch = os.path.join(output_directory, 'model_' + str(epoch+1) + '.pth')
+            model_save_path_epoch = os.path.join(
+                output_directory, 'model_' + str(epoch+1) + '.pth')
             torch.save(model.state_dict(), model_save_path_epoch)
 
     print('Total training time: ', datetime.now() - start_time)
@@ -344,7 +367,7 @@ def main():
     for key, value in cmd_args.items():
         if not key in config_args or not value is None:
             config_args[key] = value
-    #config_args.update(cmd_args)
+    # config_args.update(cmd_args)
     args = type('Args', (object,), config_args)
     print(args.__dict__)
     print('-' * 100)
@@ -368,7 +391,8 @@ def main():
         train(args, model, criterion, postprocessors, device)
     elif args.mode == "eval":
         data_loader_test, dataset_test = get_data(args)
-        eval_coco(args, model, criterion, postprocessors, data_loader_test, dataset_test, device)
+        eval_coco(args, model, criterion, postprocessors,
+                  data_loader_test, dataset_test, device)
 
 
 if __name__ == "__main__":
