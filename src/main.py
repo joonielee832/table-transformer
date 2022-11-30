@@ -57,6 +57,7 @@ def get_args():
                         help="Modes: training (train) and evaluation (eval)")
     parser.add_argument('--debug', action='store_true')
     parser.add_argument('--filter', action='store_true')
+    parser.add_argument('--crop', action='store_true')
     parser.add_argument('--device')
     parser.add_argument('--lr', type=float)
     parser.add_argument('--lr_drop', type=int)
@@ -377,6 +378,7 @@ def main():
     if args.mode == 'eval' and args.debug:
         print("Running evaluation/inference in DEBUG mode, processing will take longer. Saving output to: {}.".format(args.debug_save_dir))
         os.makedirs(args.debug_save_dir, exist_ok=True)
+        os.makedirs(f"{args.debug_save_dir}/cropped", exist_ok=True)
 
     # fix the seed for reproducibility
     seed = args.seed + utils.get_rank()

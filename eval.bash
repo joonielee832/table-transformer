@@ -7,5 +7,7 @@ python3 main.py --mode 'eval' \
 --config_file detection_config.json \
 --data_root_dir /home/data/table_detection_dataset \
 --model_load_path "${MISC_FOLDER}/output_trained_5/model_100.pth" \
+--debug \
 --filter \
+--crop \
 --debug_save_dir "${MISC_FOLDER}/output_trained_5/samples_all_filtered"

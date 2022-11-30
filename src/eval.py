@@ -600,7 +600,19 @@ def visualize(args, target, result):
 
     plt.close('all')
 
+def crop_table(args, target, result):
+    img_filepath = target["img_path"]
+    img_filename = img_filepath.split("/")[-1]
 
+    bboxes_out_filename = img_filename.replace(".jpg", "_cropped.jpg")
+    bboxes_out_filepath = os.path.join(
+        f"{args.debug_save_dir}/cropped", bboxes_out_filename)
+
+    img = Image.open(img_filepath)
+    pred_bbox = result['boxes'].detach().cpu().tolist()[0]
+    
+    resized_crop = img.crop((pred_bbox[0], pred_bbox[1], pred_bbox[2], pred_bbox[3]))
+    resized_crop.save(bboxes_out_filepath)
 
 @torch.no_grad()
 def filter_table(targets, results):
@@ -696,8 +708,8 @@ def evaluate(args, model, criterion, postprocessors, data_loader, base_ds, devic
 
         if args.debug:
             for target, result in zip(targets, results):
-                visualize(args, target, result)
-
+                # visualize(args, target, result)
+                crop_table(args, target, result)
         if coco_evaluator is not None:
             coco_evaluator.update(res)
 
