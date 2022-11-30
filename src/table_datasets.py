@@ -546,7 +546,7 @@ def _isArrayLike(obj):
 class PDFTablesDataset(torch.utils.data.Dataset):
     def __init__(self, root, transforms=None, max_size=None, do_crop=True, make_coco=False,
                  include_eval=False, max_neg=None, negatives_root=None, xml_fileset="filelist.txt",
-                 image_extension='.png', class_map=None):
+                 image_extension='.png', class_map=None, filter=False):
         self.root = root
         self.transforms = transforms
         self.do_crop = do_crop
@@ -559,6 +559,9 @@ class PDFTablesDataset(torch.utils.data.Dataset):
         for cls in self.class_list:
             if cls not in ['Table', 'Other (Table)', 'Footnote']:
                 self.class_set.remove(class_map[cls])
+        if filter:
+            self.class_set.remove(class_map['Other (Table)'])
+            self.class_set.remove(class_map['Footnote'])
 
         try:
             with open(os.path.join(root, "..", xml_fileset), 'r') as file:

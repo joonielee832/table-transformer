@@ -178,7 +178,8 @@ def get_data(args):
                                         include_eval=True,
                                         image_extension=".jpg",
                                         xml_fileset="val_filelist.txt",
-                                        class_map=class_map)
+                                        class_map=class_map,
+                                        filter=args.filter)
         sampler_test = torch.utils.data.SequentialSampler(dataset_test)
 
         data_loader_test = DataLoader(dataset_test,

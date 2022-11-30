@@ -648,7 +648,7 @@ def evaluate(args, model, criterion, postprocessors, data_loader, base_ds, devic
 
     iou_types = tuple(k for k in ('segm', 'bbox')
                       if k in postprocessors.keys())
-    coco_evaluator = CocoEvaluator(base_ds, iou_types)
+    coco_evaluator = CocoEvaluator(base_ds, iou_types, args.filter)
 
     if args.data_type == "structure":
         tsr_metrics = []
@@ -693,7 +693,7 @@ def evaluate(args, model, criterion, postprocessors, data_loader, base_ds, devic
             targets, results = filter_table(targets, results)
         res = {target['image_id'].item(): output for target,
                output in zip(targets, results)}
-        
+
         if args.debug:
             for target, result in zip(targets, results):
                 visualize(args, target, result)
